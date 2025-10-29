@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Kuis Demokrasi - Kelas XI</title>
+    <!-- Memuat Tailwind CSS dari CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Memuat Inter font -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+        }
+        .card {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            border-radius: 1rem;
+        }
+        .option-button {
+            transition: all 0.3s;
+            text-align: left;
+        }
+        .option-button:hover:not(.selected) {
+            background-color: #e0f2fe;
+            border-color: #3b82f6;
+        }
+        .selected-correct {
+            background-color: #4ade80 !important;
+            border-color: #16a34a !important;
+            color: white !important;
+        }
+        .selected-incorrect {
+            background-color: #f87171 !important;
+            border-color: #dc2626 !important;
+            color: white !important;
+        }
+        /* Custom scrollbar for better look */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+    <div id="gameContainer" class="w-full max-w-2xl bg-white card p-6 md:p-10">
+
+        <!-- Layar Awal (Start Screen) -->
+        <div id="startScreen" class="flex flex-col items-center text-center">
+            <h1 class="text-4xl font-extrabold text-blue-600 mb-4">Kuis Demokrasi Konstitusional</h1>
+            <p class="text-lg text-gray-700 mb-8">Uji Nalar Kritis Anda tentang Demokrasi Berdasarkan UUD NRI 1945. (Kelas XI)</p>
+
+            <div class="w-full max-w-sm space-y-4">
+                <input type="text" id="inputName" placeholder="Nama Lengkap" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-gray-800" required>
+                <input type="text" id="inputClass" placeholder="Kelas (contoh: XI IPS 1)" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500 text-gray-800" required>
+                <button onclick="startGame()" class="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition duration-300 transform hover:scale-[1.01]">
+                    Mulai Kuis Sekarang!
+                </button>
+            </div>
+        </div>
+
+        <!-- Layar Kuis (Quiz Screen) -->
+        <div id="quizScreen" class="hidden">
+            <div class="flex justify-between items-center mb-6 border-b pb-3">
+                <p class="text-sm font-medium text-gray-600">
+                    <span id="playerNameDisplay"></span> | <span id="playerClassDisplay"></span>
+                </p>
+                <p class="text-xl font-bold text-blue-600">
+                    Soal <span id="currentQNum">1</span> / 25
+                </p>
+            </div>
+
+            <div class="h-60 overflow-y-auto pr-2 mb-6">
+                <p id="questionText" class="text-xl font-semibold text-gray-800 leading-relaxed"></p>
+            </div>
+
+            <div id="optionsContainer" class="space-y-3 mb-8">
+                <!-- Pilihan Jawaban akan dimuat di sini oleh JavaScript -->
+            </div>
+
+            <div class="flex justify-between">
+                <button id="prevBtn" onclick="prevQuestion()" class="bg-gray-400 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-lg transition duration-300 disabled:opacity-50" disabled>
+                    &larr; Sebelumnya
+                </button>
+                <button id="nextBtn" onclick="nextQuestion()" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 disabled:opacity-50">
+                    Lanjut &rarr;
+                </button>
+            </div>
+        </div>
+
+        <!-- Layar Hasil (Result Screen) -->
+        <div id="resultScreen" class="hidden text-center">
+            <h2 class="text-4xl font-extrabold text-green-600 mb-4">Selesai!</h2>
+            <p class="text-xl text-gray-700 mb-6">Anda telah menyelesaikan kuis.</p>
+
+            <div class="bg-blue-50 p-6 rounded-xl mb-8 border border-blue-200">
+                <p class="text-lg font-medium text-gray-700">Nama: <span class="font-bold text-blue-800" id="finalName"></span></p>
+                <p class="text-lg font-medium text-gray-700">Kelas: <span class="font-bold text-blue-800" id="finalClass"></span></p>
+                <div class="mt-4">
+                    <p class="text-5xl font-extrabold text-green-600" id="finalScore"></p>
+                    <p class="text-xl font-semibold text-gray-600">Total Jawaban Benar (dari 25 soal)</p>
+                </div>
+            </div>
+
+            <button onclick="downloadPDF()" class="bg-red-500 hover:bg-red-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300 transform hover:scale-[1.02] flex items-center justify-center mx-auto">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Unduh Hasil Nilai (PDF)
+            </button>
+        </div>
+
+    </div>
+
+    <!-- Pustaka jsPDF untuk membuat file PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+
+    <script>
+        // Inisialisasi State Game
+        let playerName = '';
+        let playerClass = '';
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let playerAnswers = Array(25).fill(null); // Menyimpan indeks jawaban yang dipilih (0, 1, 2, atau 3)
+
+        // Definisi Soal (25 Nomor)
+        const questions = [
+            // --- 5 Soal Tingkat Sedang (Medium - Faktual/Konseptual) ---
+            {
+                q: "Pasal 1 Ayat (2) UUD NRI Tahun 1945 pasca-amandemen menetapkan bahwa kedaulatan berada di tangan rakyat dan dilaksanakan menurut Undang-Undang Dasar. Siapakah lembaga yang menjadi representasi utama dari kedaulatan rakyat dalam menjalankan fungsi legislasi dan pengawasan?",
+                options: ["Presiden", "Mahkamah Konstitusi (MK)", "Dewan Perwakilan Rakyat (DPR)", "Majelis Permusyawaratan Rakyat (MPR)"],
+                answer: 2, // DPR
+                level: "Sedang"
+            },
+            {
+                q: "Salah satu pilar utama demokrasi konstitusional Indonesia adalah adanya pembagian kekuasaan (trias politica). Kekuasaan yudikatif dijalankan oleh Mahkamah Agung (MA) dan Mahkamah Konstitusi (MK). Apa fungsi utama dari MK yang secara langsung mengamankan prinsip demokrasi?",
+                options: ["Mengadili pada tingkat kasasi", "Menguji peraturan pemerintah terhadap undang-undang", "Menguji undang-undang terhadap UUD NRI Tahun 1945", "Mengajukan calon Hakim Agung"],
+                answer: 2, // Menguji undang-undang terhadap UUD NRI Tahun 1945 (Judicial Review)
+                level: "Sedang"
+            },
+            {
+                q: "Demokrasi Pancasila menekankan musyawarah untuk mufakat dalam pengambilan keputusan. Jika mufakat tidak tercapai, mekanisme apa yang diatur dalam sistem ketatanegaraan Indonesia sebagai jalan terakhir?",
+                options: ["Pengambilan keputusan oleh Presiden", "Voting (pemungutan suara)", "Penundaan keputusan hingga batas waktu yang tidak ditentukan", "Penyerahan masalah kepada Mahkamah Agung"],
+                answer: 1, // Voting
+                level: "Sedang"
+            },
+            {
+                q: "Prinsip 'Negara berdasarkan atas hukum (Rechtsstaat)' dalam UUD NRI 1945 memastikan bahwa kekuasaan tidak bersifat absolut. Prinsip ini berfungsi sebagai mekanisme 'check' yang memungkinkan lembaga negara mana yang dapat membatalkan produk hukum yang bertentangan dengan UUD?",
+                options: ["Dewan Perwakilan Daerah (DPD)", "Komisi Yudisial (KY)", "Presiden", "Mahkamah Konstitusi (MK)"],
+                answer: 3, // MK (melalui judicial review)
+                level: "Sedang"
+            },
+            {
+                q: "Dalam konteks hak asasi manusia sebagai bagian integral dari demokrasi, UUD NRI Tahun 1945 menjamin kebebasan berserikat dan berkumpul, serta mengeluarkan pendapat. Pasal mana yang secara eksplisit mengatur hak tersebut?",
+                options: ["Pasal 27 Ayat (1)", "Pasal 28E Ayat (3)", "Pasal 30 Ayat (1)", "Pasal 33 Ayat (3)"],
+                answer: 1, // Pasal 28E Ayat (3)
+                level: "Sedang"
+            },
+
+            // --- 10 Soal Tingkat Sulit dan Analisis (Difficult & Analytical) ---
+            {
+                q: "Perubahan UUD NRI 1945 menghapus rumusan kedaulatan yang sebelumnya berada di tangan MPR dan menetapkannya di tangan rakyat. Secara analisis, implikasi paling kritis dari perubahan ini terhadap struktur kekuasaan negara adalah...",
+                options: ["MPR kehilangan seluruh fungsinya dan dibubarkan.", "Sistem presidensial menjadi sangat dominan tanpa pengawasan.", "Terjadi pergeseran dari supremasi lembaga (MPR) ke supremasi hukum (UUD).", "Kekuasaan legislatif secara otomatis beralih sepenuhnya ke DPD."],
+                answer: 2, // Pergeseran dari supremasi lembaga ke supremasi hukum
+                level: "Sulit/Analisis"
+            },
+            {
+                q: "Dalam sistem checks and balances, DPR memiliki hak interpelasi terhadap Presiden. Jika hak ini digunakan dan Presiden dianggap melanggar hukum, alur konstitusional selanjutnya yang paling sesuai dan berjenjang adalah...",
+                options: ["DPR langsung dapat mengajukan mosi tidak percaya untuk menjatuhkan Presiden.", "DPR mengajukan usulan pemberhentian Presiden kepada Mahkamah Agung.", "DPR mengajukan permintaan penyelidikan kepada Komisi Pemberantasan Korupsi (KPK).", "DPR mengajukan usulan pemberhentian Presiden kepada MPR setelah mendapat putusan dari Mahkamah Konstitusi."],
+                answer: 3, // Mekanisme impeachment melibatkan DPR, MK, dan MPR
+                level: "Sulit/Analisis"
+            },
+            {
+                q: "Salah satu ciri demokrasi modern adalah adanya akuntabilitas pejabat publik. Jika seorang Menteri terbukti menyalahgunakan wewenang, mekanisme pengawasan yang mencerminkan pertanggungjawaban vertikal kepada rakyat berdasarkan UUD NRI 1945 paling tepat dilakukan oleh...",
+                options: ["Dewan Perwakilan Daerah (DPD) melalui konsultasi daerah.", "Mahkamah Konstitusi (MK) melalui uji materi peraturan.", "Dewan Perwakilan Rakyat (DPR) melalui mekanisme Rapat Dengar Pendapat dan hak bertanya.", "Komisi Pemberantasan Korupsi (KPK) sebagai lembaga independen."],
+                answer: 2, // DPR (pengawasan eksekutif)
+                level: "Sulit/Analisis"
+            },
+            {
+                q: "Mengapa Pasal 27 Ayat (1) UUD NRI 1945 ('Segala warga negara bersamaan kedudukannya di dalam hukum dan pemerintahan...') dianggap sebagai fondasi penting bagi pelaksanaan demokrasi di Indonesia?",
+                options: ["Karena pasal ini secara spesifik mengatur hak pilih dalam pemilu.", "Karena pasal ini memastikan semua lembaga negara memiliki kedudukan setara.", "Karena pasal ini menjamin prinsip kesetaraan dan keadilan hukum, tanpa diskriminasi dalam politik.", "Karena pasal ini mengatur pembagian kekuasaan antara pusat dan daerah."],
+                answer: 2, // Menjamin kesetaraan dan keadilan hukum
+                level: "Sulit/Analisis"
+            },
+            {
+                q: "Jika sebuah undang-undang yang baru disahkan dianggap merugikan sekelompok masyarakat sipil dan bertentangan dengan prinsip demokrasi yang dijamin UUD, jalur penyelesaian konstitusional yang paling demokratis adalah...",
+                options: ["Melakukan demonstrasi besar-besaran untuk memaksa DPR membatalkannya.", "Mengajukan permohonan pembatalan kepada Presiden.", "Mengajukan permohonan Judicial Review ke Mahkamah Konstitusi.", "Melakukan referendum nasional untuk menolak undang-undang tersebut."],
+                answer: 2, // Judicial Review ke MK
+                level: "Sulit/Analisis"
+            },
+            {
+                q: "Konsep negara kesatuan berbentuk republik dalam Pasal 1 Ayat (1) UUD NRI 1945 menyiratkan adanya kesatuan antara pusat dan daerah. Aspek demokrasi yang paling terancam jika terjadi sentralisasi kekuasaan berlebihan pada pemerintah pusat adalah...",
+                options: ["Fungsi pengawasan Mahkamah Agung.", "Prinsip otonomi daerah dan partisipasi politik lokal.", "Kedudukan Komisi Yudisial.", "Kekuasaan Presiden dalam bidang luar negeri."],
+                answer: 1, // Otonomi daerah dan partisipasi lokal
+                level: "Sulit/Analisis"
+            },
+            {
+                q: "Prinsip 'Kedaulatan di Tangan Rakyat' menuntut adanya mekanisme pemilu yang bebas, rahasia, dan adil. Secara analisis, risiko terbesar terhadap integritas demokrasi konstitusional Indonesia jika Pemilu diselenggarakan tanpa pengawasan independen adalah...",
+                options: ["Terjadinya intervensi asing dalam proses politik.", "Hilangnya hak untuk memilih oleh sebagian kecil warga negara.", "Legitimasi hasil pemilu dipertanyakan, merusak kepercayaan publik dan prinsip kedaulatan.", "Meningkatnya jumlah partai politik baru secara drastis."],
+                answer: 2, // Legitimasi hasil pemilu dipertanyakan
+                level: "Sulit/Analisis"
+            },
+            {
+                q: "Sistem pemerintahan presidensial yang dianut Indonesia berdasarkan UUD NRI 1945 mengatur bahwa menteri bertanggung jawab kepada Presiden. Bagaimana mekanisme ini secara kritis menjaga stabilitas pemerintahan dalam konteks demokrasi?",
+                options: ["Menteri dapat diberhentikan setiap saat oleh DPR tanpa alasan.", "Memastikan menteri loyalitasnya hanya kepada partai politik pengusung.", "Menghindari perpecahan kekuasaan eksekutif dan meminimalisir peluang mosi tidak percaya yang menjatuhkan kabinet.", "Memberikan hak kepada Presiden untuk membekukan DPR jika terjadi deadlock."],
+                answer: 2, // Menghindari perpecahan kekuasaan dan mosi tidak percaya
+                level: "Sulit/Analisis"
+            },
+            {
+                q: "Mengapa peran DPD (Dewan Perwakilan Daerah) dalam proses legislasi, meskipun terbatas, penting dalam menjaga keseimbangan demokrasi di Indonesia?",
+                options: ["DPD adalah lembaga yang mengawasi seluruh kinerja Presiden.", "DPD menjamin bahwa setiap UU harus disahkan dengan musyawarah mufakat.", "DPD merepresentasikan kepentingan daerah, memastikan isu-isu regional terakomodasi dalam kebijakan nasional.", "DPD memiliki hak untuk menguji seluruh undang-undang terhadap UUD."],
+                answer: 2, // Merepresentasikan kepentingan daerah
+                level: "Sulit/Analisis"
+            },
+            {
+                q: "Filosofi Demokrasi Pancasila menekankan pada keseimbangan antara hak individu dan kewajiban sosial. Dalam konteks ini, Pasal 28J Ayat (1) UUD NRI 1945 ('Setiap orang wajib menghormati hak asasi orang lain...') memiliki peran kritis yaitu...",
+                options: ["Membatasi hak-hak dasar agar negara lebih mudah mengatur rakyatnya.", "Menjadikan hak asasi manusia sebagai nilai yang absolut dan tak terbatas.", "Menegaskan bahwa pelaksanaan hak individu harus dibatasi oleh kepentingan umum dan hak orang lain.", "Memberikan kewenangan penuh kepada pemerintah untuk mengatur batasan hak."],
+                answer: 2, // Pelaksanaan hak individu harus dibatasi oleh kepentingan umum dan hak orang lain
+                level: "Sulit/Analisis"
+            },
+
+            // --- 5 Soal Penerapan Berdasarkan Contoh (Application) ---
+            {
+                q: "Dalam rapat pembahasan APBD, seorang Gubernur menolak usulan alokasi dana pendidikan dari DPRD dengan dalih efisiensi tanpa memberikan dasar hukum yang jelas, dan mengancam memotong anggaran daerah yang menentang. Tindakan Gubernur ini secara langsung melanggar prinsip demokrasi konstitusional berupa...",
+                options: ["Prinsip kebebasan berpendapat.", "Prinsip akuntabilitas dan supremasi hukum.", "Prinsip otonomi daerah yang seluas-luasnya.", "Prinsip persatuan dan kesatuan bangsa."],
+                answer: 1, // Akuntabilitas dan supremasi hukum
+                level: "Penerapan"
+            },
+            {
+                q: "Sekelompok warga negara mengajukan petisi kepada DPR menuntut transparansi dana proyek infrastruktur besar. Respons DPR adalah membuka data anggaran tersebut secara rinci melalui situs web resminya. Tindakan DPR ini mencerminkan pengamalan prinsip demokrasi, yaitu...",
+                options: ["Musyawarah mufakat.", "Checks and balances antar lembaga.", "Prinsip keterbukaan dan akuntabilitas publik.", "Prinsip kemandirian kekuasaan yudikatif."],
+                answer: 2, // Keterbukaan dan akuntabilitas publik
+                level: "Penerapan"
+            },
+            {
+                q: "Saat Pilkada, ada laporan bahwa aparat desa memaksa warganya untuk memilih calon tertentu dengan ancaman pencabutan bantuan sosial. Tindakan ini paling nyata melanggar asas Pemilu berdasarkan UUD NRI 1945, yaitu asas...",
+                options: ["Langsung dan Umum.", "Bebas dan Adil.", "Rahasia dan Jujur.", "Langsung dan Jujur."],
+                answer: 2, // Bebas (tidak ada paksaan) dan Adil (tidak ada kecurangan)
+                level: "Penerapan"
+            },
+            {
+                q: "Pemerintah menerbitkan Peraturan Pemerintah Pengganti Undang-Undang (Perppu) dalam kondisi genting tanpa melalui persetujuan DPR terlebih dahulu. Berdasarkan UUD NRI 1945, langkah apa yang harus dilakukan Presiden selanjutnya untuk menjaga kepatuhan terhadap prinsip demokrasi?",
+                options: ["Mengajukan Perppu tersebut untuk disahkan oleh Mahkamah Konstitusi.", "Mengajukan Perppu tersebut ke DPR untuk mendapat persetujuan dalam persidangan berikutnya.", "Membatalkan Perppu jika ada protes dari masyarakat.", "Mengabaikan persetujuan DPR karena kondisi genting."],
+                answer: 1, // Perppu harus diajukan ke DPR untuk persetujuan
+                level: "Penerapan"
+            },
+            {
+                q: "Seorang hakim Mahkamah Agung menolak intervensi politik dari pejabat eksekutif dalam memutuskan sebuah perkara korupsi. Sikap ini adalah manifestasi paling jelas dari prinsip demokrasi konstitusional yang menjamin...",
+                options: ["Kedaulatan rakyat.", "Supremasi sipil.", "Kemandirian kekuasaan kehakiman.", "Hak prerogatif Presiden."],
+                answer: 2, // Kemandirian kekuasaan kehakiman
+                level: "Penerapan"
+            },
+
+            // --- 5 Soal Berdasarkan Cerita/Skenario (Scenario) ---
+            {
+                q: "Di Kabupaten 'Makmur', DPRD tengah membahas Raperda tata ruang. Anggota DPRD dari fraksi A mendesak agar Raperda segera disahkan tanpa mendengarkan masukan publik. Fraksi B menolak dan meminta adanya 'public hearing' yang melibatkan akademisi dan tokoh adat, merujuk pada prinsip transparansi dan partisipasi. Tindakan Fraksi B paling sesuai dengan semangat demokrasi UUD NRI 1945 yang mana?",
+                options: ["Hak imunitas anggota legislatif.", "Prinsip kedaulatan di tangan MPR.", "Musyawarah untuk mufakat yang melibatkan partisipasi publik.", "Prinsip sentralisasi kekuasaan."],
+                answer: 2, // Musyawarah untuk mufakat yang melibatkan partisipasi publik
+                level: "Cerita/Skenario"
+            },
+            {
+                q: "Sebuah partai politik besar menguasai mayoritas kursi di DPR. Mereka menggunakan kekuatan ini untuk terus-menerus menolak semua RUU yang diinisiasi oleh fraksi minoritas, meskipun RUU tersebut dinilai baik oleh pakar hukum. Meskipun sah secara prosedur, tindakan mayoritas ini secara etika demokrasi paling berisiko melanggar prinsip...",
+                options: ["Prinsip kesetaraan kedudukan dalam hukum.", "Prinsip hak prerogatif Presiden.", "Toleransi, menghargai hak minoritas, dan keseimbangan kekuasaan.", "Prinsip independensi Komisi Yudisial."],
+                answer: 2, // Toleransi, menghargai hak minoritas
+                level: "Cerita/Skenario"
+            },
+            {
+                q: "Dalam Pemilu Presiden, terdapat tiga pasangan calon. Hasil quick count menunjukkan selisih suara yang sangat tipis antara pasangan 01 dan 02, sementara pasangan 03 kalah telak. Pasangan 02 kemudian menuduh terjadi kecurangan masif dan mengancam akan mengerahkan massa untuk memprotes. Berdasarkan koridor demokrasi konstitusional, jalur resmi yang harus ditempuh oleh Pasangan 02 adalah...",
+                options: ["Mengajukan gugatan sengketa hasil Pemilu ke Mahkamah Konstitusi.", "Meminta Presiden petahana untuk membatalkan hasil pemilu.", "Mengajukan banding ke Pengadilan Negeri setempat.", "Melakukan pemilu ulang di seluruh daerah yang dicurigai curang tanpa proses hukum."],
+                answer: 0, // Gugatan sengketa hasil Pemilu ke MK
+                level: "Cerita/Skenario"
+            },
+            {
+                q: "Pemerintah Provinsi 'Sejahtera' mengeluarkan kebijakan yang memprioritaskan pembangunan infrastruktur ekonomi, namun mengesampingkan anggaran untuk pelestarian lingkungan. Kebijakan ini menuai kritik dari LSM lingkungan. Jika LSM tersebut berpegangan pada UUD NRI 1945, pasal manakah yang paling relevan untuk menuntut penyeimbangan kebijakan tersebut?",
+                options: ["Pasal 29 Ayat (2) tentang kebebasan beragama.", "Pasal 31 Ayat (1) tentang pendidikan.", "Pasal 33 Ayat (4) tentang perekonomian nasional.", "Pasal 28H Ayat (1) tentang hak hidup sejahtera dan lingkungan hidup yang baik."],
+                answer: 3, // Pasal 28H Ayat (1)
+                level: "Cerita/Skenario"
+            },
+            {
+                q: "Seorang pejabat publik dituduh melakukan tindak pidana korupsi. Meskipun belum ada putusan pengadilan, media sosial sudah menghakiminya. Demi menjunjung tinggi prinsip demokrasi konstitusional dan negara hukum, sikap yang paling benar dari publik adalah...",
+                options: ["Mendesak Presiden untuk segera memecat pejabat tersebut.", "Menghormati asas praduga tak bersalah (presumption of innocence) sambil menunggu proses hukum yang independen.", "Melakukan pengumpulan dana untuk menuntut pejabat tersebut secara perdata.", "Menuntut agar DPR segera menggunakan hak angket untuk menyelidiki kasus tersebut."],
+                answer: 1, // Menghormati asas praduga tak bersalah
+                level: "Cerita/Skenario"
+            }
+        ];
+
+        // Fungsi untuk memulai permainan
+        function startGame() {
+            playerName = document.getElementById('inputName').value.trim();
+            playerClass = document.getElementById('inputClass').value.trim();
+
+            if (!playerName || !playerClass) {
+                alert('Mohon isi Nama Lengkap dan Kelas Anda terlebih dahulu.');
+                return;
+            }
+
+            // Reset state
+            currentQuestionIndex = 0;
+            score = 0;
+            playerAnswers = Array(questions.length).fill(null);
+
+            document.getElementById('startScreen').classList.add('hidden');
+            document.getElementById('quizScreen').classList.remove('hidden');
+
+            document.getElementById('playerNameDisplay').textContent = playerName;
+            document.getElementById('playerClassDisplay').textContent = playerClass;
+
+            renderQuestion();
+        }
+
+        // Fungsi untuk menampilkan soal
+        function renderQuestion() {
+            if (currentQuestionIndex >= questions.length) {
+                showResults();
+                return;
+            }
+
+            const qData = questions[currentQuestionIndex];
+            document.getElementById('currentQNum').textContent = currentQuestionIndex + 1;
+            document.getElementById('questionText').textContent = qData.q;
+
+            const optionsContainer = document.getElementById('optionsContainer');
+            optionsContainer.innerHTML = '';
+
+            qData.options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.textContent = `${String.fromCharCode(65 + index)}. ${option}`;
+                button.className = `option-button w-full p-3 border-2 border-gray-300 rounded-lg text-gray-800 font-medium ${playerAnswers[currentQuestionIndex] === index ? 'bg-blue-100 border-blue-500' : 'bg-white'}`;
+                button.onclick = () => selectAnswer(index);
+                optionsContainer.appendChild(button);
+            });
+
+            // Atur tombol navigasi
+            document.getElementById('prevBtn').disabled = currentQuestionIndex === 0;
+            const nextBtn = document.getElementById('nextBtn');
+            nextBtn.textContent = (currentQuestionIndex === questions.length - 1) ? 'Selesai & Lihat Hasil' : 'Lanjut →';
+        }
+
+        // Fungsi untuk memilih jawaban
+        function selectAnswer(selectedIndex) {
+            playerAnswers[currentQuestionIndex] = selectedIndex;
+            renderQuestion(); // Render ulang untuk menampilkan pilihan yang sudah tersimpan
+        }
+
+        // Fungsi untuk pindah ke soal berikutnya
+        function nextQuestion() {
+            if (currentQuestionIndex < questions.length - 1) {
+                currentQuestionIndex++;
+                renderQuestion();
+            } else if (currentQuestionIndex === questions.length - 1) {
+                showResults();
+            }
+        }
+
+        // Fungsi untuk pindah ke soal sebelumnya
+        function prevQuestion() {
+            if (currentQuestionIndex > 0) {
+                currentQuestionIndex--;
+                renderQuestion();
+            }
+        }
+
+        // Fungsi untuk menampilkan hasil
+        function showResults() {
+            // Hitung skor akhir
+            score = 0;
+            const detailResults = [];
+
+            questions.forEach((qData, index) => {
+                const isCorrect = playerAnswers[index] === qData.answer;
+                if (isCorrect) {
+                    score++;
+                }
+                detailResults.push({
+                    number: index + 1,
+                    question: qData.q,
+                    playerAnswer: playerAnswers[index] !== null ? qData.options[playerAnswers[index]] : "Tidak Dijawab",
+                    correctAnswer: qData.options[qData.answer],
+                    isCorrect: isCorrect ? "Benar" : "Salah",
+                    level: qData.level
+                });
+            });
+
+            // Tampilkan layar hasil
+            document.getElementById('quizScreen').classList.add('hidden');
+            document.getElementById('resultScreen').classList.remove('hidden');
+
+            document.getElementById('finalName').textContent = playerName;
+            document.getElementById('finalClass').textContent = playerClass;
+            document.getElementById('finalScore').textContent = score;
+
+            // Simpan hasil detail untuk PDF
+            window.finalResults = {
+                name: playerName,
+                className: playerClass,
+                totalScore: score,
+                details: detailResults
+            };
+        }
+
+        // Fungsi untuk mengunduh hasil sebagai PDF
+        function downloadPDF() {
+            if (typeof window.jsPDF === 'undefined') {
+                console.error("jsPDF library not loaded.");
+                alert("Gagal memuat pustaka PDF. Silakan coba muat ulang halaman.");
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const results = window.finalResults;
+
+            const finalMark = Math.round((results.totalScore / 25) * 100);
+
+            // Judul dan Info Siswa
+            doc.setFontSize(18);
+            doc.text('Laporan Hasil Kuis Demokrasi Konstitusional', 105, 20, null, null, 'center');
+
+            doc.setFontSize(12);
+            doc.text(`Nama Siswa: ${results.name}`, 15, 30);
+            doc.text(`Kelas: ${results.className}`, 15, 37);
+            doc.text(`Total Soal: 25`, 15, 44);
+            doc.text(`Jawaban Benar: ${results.totalScore}`, 15, 51);
+
+            doc.setFontSize(24);
+            doc.setTextColor(30, 140, 60); // Warna hijau
+            doc.text(`Nilai Akhir: ${finalMark}`, 105, 65, null, null, 'center');
+            doc.setTextColor(0, 0, 0); // Kembali ke hitam
+
+            // Detail Jawaban
+            doc.setFontSize(14);
+            doc.text('Detail Jawaban:', 15, 80);
+
+            const tableData = results.details.map(item => [
+                item.number,
+                item.level,
+                item.isCorrect,
+                item.playerAnswer,
+                item.correctAnswer,
+            ]);
+
+            doc.autoTable({
+                startY: 85,
+                head: [['No.', 'Level', 'Status', 'Jawaban Siswa', 'Kunci Jawaban Benar']],
+                body: tableData,
+                theme: 'striped',
+                headStyles: { fillColor: [59, 130, 246] },
+                styles: { fontSize: 8 },
+                columnStyles: {
+                    0: { cellWidth: 10 },
+                    1: { cellWidth: 20 },
+                    2: { cellWidth: 20 },
+                    3: { cellWidth: 70 },
+                    4: { cellWidth: 70 },
+                }
+            });
+
+            doc.save(`Hasil_Kuis_Demokrasi_${results.name}.pdf`);
+        }
+
+        // Pastikan gameContainer terlihat saat memuat
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('gameContainer').classList.remove('hidden');
+        });
+    </script>
+</body>
+</html>
